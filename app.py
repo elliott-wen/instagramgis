@@ -4,6 +4,7 @@ from config import Config
 import threading
 import logging
 import time
+import traceback
 import pymongo
 import json
 from pymongo import MongoClient
@@ -23,37 +24,42 @@ class InstagramImageCrawler(threading.Thread):
 
 
     def run(self):
-        api = InstagramAPI(access_token=self.access_token, client_secret=Config.CLIENT_SECRET, client_id=Config.CLIENT_ID)
-        result = api.media_search(lat=self.lat, lng=self.lng, max_timestamp=self.stime, count=1000, distance=4990)
-        current_time = 0
-        logging.info("Server return %d item from (%s,%s)"%(len(result),self.lat,self.lng))
-        for media in result:
-            caption = ""
-            tags = ""
-            latitude = ""
-            longitude = ""
-            location_id = ""
-            if media.caption:
-                caption = media.caption.text
-            if media.location:
-                location_id = str(media.location.id)
-                latitude = str(media.location.point.latitude)
-                longitude = str(media.location.point.longitude)
-            for tag in media.tags:
-                tags = tags + tag.name
-                tags = tags + " "
+        try:
+            api = InstagramAPI(access_token=self.access_token, client_secret=Config.CLIENT_SECRET, client_id=Config.CLIENT_ID)
+            result = api.media_search(lat=self.lat, lng=self.lng, max_timestamp=self.stime, count=1000, distance=4990)
+            current_time = 0
+            logging.info("Server return %d item from (%s,%s)"%(len(result),self.lat,self.lng))
 
-            raw_json = json.dumps(media.raw)
-            current_time = calendar.timegm(media.created_time.timetuple())
-            image_record = {"json":raw_json, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
-            user_record = {"user_id":media.user.id, "user_name":media.user.username}
-            self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert= True)
-            self.manager.user_collection.update_one({"user_id":media.user.id}, {"$set":user_record} , upsert=True)
-        logging.info("Job done! Updating Current Time %s %s for (%s,%s)"%(current_time, media.created_time, self.lat, self.lng))
-        job = self.manager.job_collection.find_one({"lat":self.lat, "lng":self.lng})
-        job['ctime'] = current_time
-        self.manager.job_collection.save(job)
+            for media in result:
+                caption = ""
+                tags = ""
+                latitude = ""
+                longitude = ""
+                location_id = ""
+                if media.caption:
+                    caption = media.caption.text
+                if media.location:
+                    location_id = str(media.location.id)
+                    latitude = str(media.location.point.latitude)
+                    longitude = str(media.location.point.longitude)
+                for tag in media.tags:
+                    tags = tags + tag.name
+                    tags = tags + " "
 
+                raw_json = json.dumps(media.raw)
+                current_time = calendar.timegm(media.created_time.timetuple())
+                image_record = {"json":raw_json, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
+                user_record = {"user_id":media.user.id, "user_name":media.user.username}
+                self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert= True)
+                self.manager.user_collection.update_one({"user_id":media.user.id}, {"$set":user_record} , upsert=True)
+            if len(result) == 0:
+                current_time = self.stime - 86400*5
+            logging.info("Job done! Updating Current Time %s %s for (%s,%s)"%(current_time, media.created_time, self.lat, self.lng))
+            job = self.manager.job_collection.find_one({"lat":self.lat, "lng":self.lng})
+            job['ctime'] = current_time
+            self.manager.job_collection.save(job)
+        except:
+            traceback.print_exc()
 
 class InstagramManager:
 
@@ -135,7 +141,7 @@ class InstagramManager:
 
         while True:
             finished = True
-            time.sleep(5)
+            time.sleep(3)
             for t in threads:
                 if t.is_alive():
                     finished = False
