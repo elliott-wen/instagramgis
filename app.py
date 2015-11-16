@@ -95,6 +95,12 @@ class InstagramManager:
 
         return proposed_accessToken
 
+    def remaining_access_token(self):
+        sum = 0
+        for accessToken in self.accessTokenPools:
+            currentLimit = self.accessTokenPools[accessToken]
+            sum += currentLimit
+        return sum
 
     def init_database(self):
         self.dbclient = MongoClient(Config.DATABASE_URL)
@@ -146,7 +152,6 @@ class InstagramManager:
                 if t.is_alive():
                     finished = False
             if finished:
-                logging.info("All tasks done! Wait for next shot!")
                 break
             else:
                 logging.debug("Some thread are still running!")
@@ -162,4 +167,5 @@ c.check_access_tokens()
 c.init_database()
 while True:
     c.schedule()
+    logging.info("All tasks done! Wait for next shot! Remaining Shots:%d"%c.remaining_access_token())
     time.sleep(1)
