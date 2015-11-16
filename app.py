@@ -29,6 +29,7 @@ class InstagramImageCrawler(threading.Thread):
             api = InstagramAPI(access_token=self.access_token, client_secret=Config.CLIENT_SECRET, client_id=Config.CLIENT_ID)
             result = api.media_search(lat=self.lat, lng=self.lng, max_timestamp=self.stime, count=1000, distance=4990)
             current_time = 0
+            
             logging.info("Server return %d item from (%s,%s)"%(len(result),self.lat,self.lng))
 
             for media in result:
