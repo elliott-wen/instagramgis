@@ -19,8 +19,9 @@ job_collection = db['job']
 p1 = job_collection.find_one({"lat":22.305,"lng":114.155})
 etime = p1["etime"]
 ctime = p1["ctime"]
+print etime,ctime
 p1["etime"] = p1["ctime"]-86400*15
-ctime = p1["ctime"]-86400*15
+ctime = p1["etime"]
 job_collection.save(p1)
 dif = (ctime-etime)/32
 for i in range(32):

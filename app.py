@@ -30,6 +30,7 @@ class InstagramImageCrawler(threading.Thread):
             api = InstagramAPI(access_token=self.access_token, client_secret=Config.CLIENT_SECRET, client_id=Config.CLIENT_ID)
             result = api.media_search(lat=self.lat, lng=self.lng, max_timestamp=self.stime, count=1000, distance=4990)
             current_time = 0
+            insert_count = 0
 
             logging.info("Server return %d item from (%s,%s)"%(len(result),self.lat,self.lng))
 
@@ -54,15 +55,18 @@ class InstagramImageCrawler(threading.Thread):
                 current_time = calendar.timegm(media.created_time.timetuple())
                 image_record = {"json":raw_json, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
                 user_record = {"user_id":media.user.id, "user_name":media.user.username}
-                self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert= True)
+                print media.id
+                upr = self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert=True)
+                if upr.upserted_id != None:
+                    insert_count += 1
                 self.manager.user_collection.update_one({"user_id":media.user.id}, {"$set":user_record} , upsert=True)
-            if len(result) <= 10:
+            if len(result) <= 5:
                 current_time = self.stime - 86400*5
 
             job = self.manager.job_collection.find_one({"lat":self.lat, "lng":self.lng})
             job['ctime'] = current_time
             self.manager.job_collection.save(job)
-            logging.info("Job done! Updating Current Time %s %s for (%s,%s)"%(current_time, datetime.utcfromtimestamp(float(current_time)), self.lat, self.lng))
+            logging.info("Job done! Updating Current Time %s %s for (%s,%s) Insert:%s "%(current_time, datetime.utcfromtimestamp(float(current_time)), self.lat, self.lng, insert_count))
         except:
             traceback.print_exc()
 
@@ -125,9 +129,9 @@ class InstagramManager:
             etime = stime - 86400*365
             job = {"lat":lat, "lng":lng, "stime":stime, "ctime":stime, "etime":etime, "ongoing":1}
             self.job_collection.insert_one(job)
-        self.user_collection.create_index([('user_id', pymongo.ASCENDING)], unique=True)
         #self.user_collection.create_index([('user_id', pymongo.ASCENDING)], unique=True)
-        self.image_collection.create_index([('image_id', pymongo.ASCENDING)], unique=True)
+        #self.user_collection.create_index([('user_id', pymongo.ASCENDING)], unique=True)
+        #self.image_collection.create_index([('image_id', pymongo.ASCENDING)], unique=True)
 
     def schedule(self):
         threads = []
@@ -150,6 +154,7 @@ class InstagramManager:
             threads.append(craw_thread)
             logging.info("Schedule A Task for the following attributes: lat:%s, lng:%s, timestamp:%s, accesstoken:%s"%(job['lat'],job['lng'],job['ctime'],access_token))
 
+
         while True:
             finished = True
             time.sleep(1)
@@ -170,6 +175,7 @@ class InstagramManager:
 c = InstagramManager()
 c.check_access_tokens()
 c.init_database()
+# c.schedule()
 while True:
     c.schedule()
     logging.info("All tasks done! Wait for next shot! Remaining Shots:%d"%c.remaining_access_token())
