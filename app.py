@@ -9,6 +9,7 @@ import pymongo
 import json
 from pymongo import MongoClient
 import calendar
+from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 
 
@@ -54,10 +55,11 @@ class InstagramImageCrawler(threading.Thread):
                 self.manager.user_collection.update_one({"user_id":media.user.id}, {"$set":user_record} , upsert=True)
             if len(result) == 0:
                 current_time = self.stime - 86400*5
-            logging.info("Job done! Updating Current Time %s %s for (%s,%s)"%(current_time, media.created_time, self.lat, self.lng))
+
             job = self.manager.job_collection.find_one({"lat":self.lat, "lng":self.lng})
             job['ctime'] = current_time
             self.manager.job_collection.save(job)
+            logging.info("Job done! Updating Current Time %s %s for (%s,%s)"%(current_time, datetime.utcfromtimestamp(float(current_time)), self.lat, self.lng))
         except:
             traceback.print_exc()
 
