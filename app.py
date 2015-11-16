@@ -50,9 +50,9 @@ class InstagramImageCrawler(threading.Thread):
                     tags = tags + " "
 
                 raw_json = json.dumps(media.raw)
-                raw_json_compressed = zlib.compress(raw_json)
+                #raw_json_compressed = zlib.compress(raw_json)
                 current_time = calendar.timegm(media.created_time.timetuple())
-                image_record = {"json":raw_json_compressed, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
+                image_record = {"json":raw_json, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
                 user_record = {"user_id":media.user.id, "user_name":media.user.username}
                 self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert= True)
                 self.manager.user_collection.update_one({"user_id":media.user.id}, {"$set":user_record} , upsert=True)
