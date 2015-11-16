@@ -152,7 +152,7 @@ class InstagramManager:
 
         while True:
             finished = True
-            time.sleep(3)
+            time.sleep(1)
             for t in threads:
                 if t.is_alive():
                     finished = False
@@ -173,4 +173,4 @@ c.init_database()
 while True:
     c.schedule()
     logging.info("All tasks done! Wait for next shot! Remaining Shots:%d"%c.remaining_access_token())
-    time.sleep(1)
+    time.sleep(0.5)
