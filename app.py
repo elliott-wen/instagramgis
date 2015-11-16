@@ -55,7 +55,7 @@ class InstagramImageCrawler(threading.Thread):
                 current_time = calendar.timegm(media.created_time.timetuple())
                 image_record = {"json":raw_json, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
                 user_record = {"user_id":media.user.id, "user_name":media.user.username}
-                logging.debug("Writing Image with ID:%s %s"%(media.id, media.created_time))
+                logging.info("Writing Image with ID:%s %s"%(media.id, media.created_time))
                 upr = self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert=True)
                 if upr.upserted_id != None:
                     insert_count += 1
