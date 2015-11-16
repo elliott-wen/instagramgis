@@ -56,7 +56,7 @@ class InstagramImageCrawler(threading.Thread):
                 user_record = {"user_id":media.user.id, "user_name":media.user.username}
                 self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert= True)
                 self.manager.user_collection.update_one({"user_id":media.user.id}, {"$set":user_record} , upsert=True)
-            if len(result) == 0:
+            if len(result) <= 50:
                 current_time = self.stime - 86400*5
 
             job = self.manager.job_collection.find_one({"lat":self.lat, "lng":self.lng})
