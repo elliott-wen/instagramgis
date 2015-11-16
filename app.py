@@ -9,6 +9,7 @@ import pymongo
 import json
 from pymongo import MongoClient
 import calendar
+import zlib
 from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 
@@ -29,7 +30,7 @@ class InstagramImageCrawler(threading.Thread):
             api = InstagramAPI(access_token=self.access_token, client_secret=Config.CLIENT_SECRET, client_id=Config.CLIENT_ID)
             result = api.media_search(lat=self.lat, lng=self.lng, max_timestamp=self.stime, count=1000, distance=4990)
             current_time = 0
-            
+
             logging.info("Server return %d item from (%s,%s)"%(len(result),self.lat,self.lng))
 
             for media in result:
@@ -49,8 +50,9 @@ class InstagramImageCrawler(threading.Thread):
                     tags = tags + " "
 
                 raw_json = json.dumps(media.raw)
+                raw_json_compressed = zlib.compress(raw_json)
                 current_time = calendar.timegm(media.created_time.timetuple())
-                image_record = {"json":raw_json, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
+                image_record = {"json":raw_json_compressed, "image_id": media.id, "created_time": media.created_time, "caption":caption, "location_id":location_id, "longitude":longitude, "latitude":latitude, "tags":tags, "user_id":media.user.id, "user_name":media.user.username}
                 user_record = {"user_id":media.user.id, "user_name":media.user.username}
                 self.manager.image_collection.update_one({"image_id": media.id},{"$set":image_record}, upsert= True)
                 self.manager.user_collection.update_one({"user_id":media.user.id}, {"$set":user_record} , upsert=True)
